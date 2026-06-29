@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Management System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        h2 { color: #333; margin-top: 0; }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px;
+            transition: 0.2s;
+        }
+        .btn:hover { background-color: #0056b3; }
+        .btn-success { background-color: #28a745; }
+        .btn-success:hover { background-color: #218838; }
+        .btn-secondary { background-color: #6c757d; }
+        .hidden { display: none !important; }
+        
+        .form-group { text-align: left; margin-bottom: 15px; }
+        label { font-weight: bold; color: #495057; display: block; margin-bottom: 5px;}
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .qr-container { display: flex; justify-content: center; margin: 20px 0; padding: 15px; background: #fafafa; border: 1px solid #e1e4e8; border-radius: 8px;}
+        .data-preview { background: #f8f9fa; border-left: 4px solid #007bff; padding: 10px; text-align: left; font-family: monospace; font-size: 12px; margin: 15px 0; word-break: break-all;}
+        .progress-bar { width: 100%; background-color: #e1e4e8; height: 6px; border-radius: 3px; margin-top: 8px; overflow: hidden;}
+        .progress-fill { width: 100%; height: 100%; background-color: #28a745; transition: width 0.1s linear;}
+        
+        /* Scanner Box Style */
+        #reader { width: 100%; background: #fff; border-radius: 8px; margin-top: 10px; overflow: hidden; }
+        
+        .receipt-box {
+            border: 2px dashed #333;
+            padding: 20px;
+            margin-top: 20px;
+            background: #fff;
+            text-align: left;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .receipt-header { text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 15px; border-bottom: 1px dashed #333; padding-bottom: 5px;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="homeScreen">
+        <h2>Gate Pass & Attendance Portal</h2>
+        <p style="color: #666;">Select your option:</p>
+        <button class="btn" onclick="switchScreen('genScreen')">Generate QR Code</button>
+        <button class="btn btn-success" onclick="switchScreen('scanFormScreen')">Scan QR Code</button>
+    </div>
+
+    <div id="genScreen" class="hidden">
+        <h2>Dynamic Master QR</h2>
+        <div class="qr-container"><div id="qrcode"></div></div>
+        <div style="font-size: 12px; font-weight: bold; text-align: left;">Live Encoded Data:</div>
+        <div id="dataString" class="data-preview">Loading...</div>
+        <div>Token expires in: <span id="countdown" style="font-weight: bold; color: #dc3545;">10</span>s</div>
+        <div class="progress-bar"><div id="progress" class="progress-fill"></div></div>
+        <br>
+        <button class="btn btn-secondary" onclick="stopGenerator()">Back to Menu</button>
+    </div>
+
+    <div id="scanFormScreen" class="hidden">
+        <h2>Employee Log Form</h2>
+        <div class="form-group">
+            <label>Employee Name:</label>
+            <input type="text" id="empName" placeholder="Enter full name">
+        </div>
+        <div class="form-group">
+            <label>Attendance Status:</label>
+            <select id="attendanceStatus">
+                <option value="CHECK-IN">CHECK-IN</option>
+                <option value="CHECK-OUT">CHECK-OUT</option>
+            </select>
+        </div>
+        <button class="btn btn-success" onclick="startScanner()">Open Scanner & Camera</button>
+        <button class="btn btn-secondary" onclick="switchScreen('homeScreen')">Back</button>
+    </div>
+
+    <div id="scannerScreen" class="hidden">
+        <h2>Scanning Active...</h2>
+        <p>Point your camera at the dynamic Master QR code.</p>
+        <div id="reader"></div>
+        <br>
+        <button class="btn btn-secondary" onclick="stopScanner()">Cancel</button>
+    </div>
+
+    <div id="receiptScreen" class="hidden">
+        <h2>Verification Successful</h2>
+        
+        <div id="finalReceipt" class="receipt-box">
+            <div class="receipt-header">ATTENDANCE RECEIPT</div>
+            <strong>--- MASTER QR DATA ---</strong><br>
+            <div id="recMasterData" style="font-size: 13px; margin: 5px 0;"></div>
+            <strong>--- EMPLOYEE DETAILS ---</strong><br>
+            Name: <span id="recName"></span><br>
+            Action: <span id="recStatus" style="font-weight: bold;"></span><br>
+            Scanner IP: <span id="recScannerIP"></span><br>
+            Timestamp: <span id="recTime"></span><br><br>
+            
+            <div style="text-align: center; border-top: 1px dashed #333; padding-top: 10px;">
+                <span style="font-size: 12px; font-weight: bold;">Combined Security Signature</span>
+                <div style="display: flex; justify-content: center; margin-top: 10px;">
+                    <div id="receiptQr"></div>
+                </div>
+            </div>
+        </div>
+        
+        <br>
+        <button class="btn btn-success" onclick="downloadReceiptJPG()">Download Receipt (JPG)</button>
+        <button class="btn btn-secondary" onclick="resetToHome()">Main Menu</button>
+    </div>
+</div>
+
+<script>
+    let currentIP = "Detecting IP...";
+    let genInterval = null;
+    let html5QrcodeScanner = null;
+
+    // Fetch Public IP
+    fetch('https://api.ipify.org?format=json')
+        .then(res => res.json()).then(data => currentIP = data.ip)
+        .catch(() => currentIP = "192.168.10.1");
+
+    function switchScreen(screenId) {
+        document.getElementById('homeScreen').classList.add('hidden');
+        document.getElementById('genScreen').classList.add('hidden');
+        document.getElementById('scanFormScreen').classList.add('hidden');
+        document.getElementById('scannerScreen').classList.add('hidden');
+        document.getElementById('receiptScreen').classList.add('hidden');
+        
+        document.getElementById(screenId).classList.remove('hidden');
+        if (screenId === 'genScreen') startGenerator();
+    }
+
+    // --- MASTER QR GENERATOR ---
+    const qrcode = new QRCode(document.getElementById("qrcode"), { width: 150, height: 150 });
+    
+    function startGenerator() {
+        window.lastInterval = -1;
+        genInterval = setInterval(() => {
+            const now = Date.now() / 1000;
+            const currentInterval = Math.floor(now / 10);
+            const timeRemaining = 10 - (now % 10);
+            
+            if (currentInterval !== window.lastInterval) {
+                window.lastInterval = currentInterval;
+                const token = Math.random().toString(36).substring(2, 8).toUpperCase();
+                const d = new Date();
+                const payload = `${token}|${d.toISOString().split('T')[0]}|${d.toTimeString().split(' ')[0]}|${currentIP}`;
+                
+                document.getElementById("dataString").innerText = payload;
+                qrcode.makeCode(payload);
+            }
+            
+            document.getElementById("countdown").innerText = Math.ceil(timeRemaining);
+            document.getElementById("progress").style.width = (timeRemaining / 10) * 100 + "%";
+        }, 100);
+    }
+
+    function stopGenerator() {
+        clearInterval(genInterval);
+        switchScreen('homeScreen');
+    }
+
+    // --- MODERN QR SCANNER ENGINE ---
+    function startScanner() {
+        const name = document.getElementById('empName').value.trim();
+        if(!name) { alert("Please enter Employee Name first!"); return; }
+        
+        switchScreen('scannerScreen');
+        
+        // Initialize HTML5 QR Code Engine
+        html5QrcodeScanner = new Html5Qrcode("reader");
+        
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        // Open Back Camera (environment) directly
+        html5QrcodeScanner.start(
+            { facingMode: "environment" }, 
+            config,
+            (decodedText) => {
+                // Success callback
+                stopScannerHardware();
+                processScanResult(decodedText);
+            },
+            (errorMessage) => {
+                // Background parsing noise - ignore
+            }
+        ).catch(err => {
+            console.error("Camera Initialisation Error: ", err);
+            alert("Camera Access Failed! Please read the verification notes below.");
+            switchScreen('scanFormScreen');
+        });
+    }
+
+    function stopScannerHardware() {
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.stop().then(() => {
+                html5QrcodeScanner = null;
+            }).catch(err => console.error(err));
+        }
+    }
+
+    function stopScanner() {
+        stopScannerHardware();
+        switchScreen('scanFormScreen');
+    }
+
+    // --- RECEIPT MATRIX MANAGER ---
+    function processScanResult(masterQrData) {
+        switchScreen('receiptScreen');
+        
+        const empName = document.getElementById('empName').value;
+        const status = document.getElementById('attendanceStatus').value;
+        const scanTimestamp = new Date().toLocaleString();
+        
+        const parsed = masterQrData.split('|');
+        const token = parsed[0] || "ERR";
+        const qDate = parsed[1] || "ERR";
+        const qTime = parsed[2] || "ERR";
+        const originIP = parsed[3] || "ERR";
+        
+        document.getElementById('recMasterData').innerHTML = `ID: ${token}<br>Date: ${qDate}<br>Time: ${qTime}<br>Gen IP: ${originIP}`;
+        document.getElementById('recName').innerText = empName;
+        document.getElementById('recStatus').innerText = status;
+        document.getElementById('recScannerIP').innerText = currentIP;
+        document.getElementById('recTime').innerText = scanTimestamp;
+        
+        const combinedPayload = `MASTER:[${masterQrData}]|EMP:${empName}|ACTION:${status}|SCAN_IP:${currentIP}|TS:${scanTimestamp}`;
+        
+        document.getElementById("receiptQr").innerHTML = "";
+        const receiptQrObj = new QRCode(document.getElementById("receiptQr"), { width: 120, height: 120 });
+        receiptQrObj.makeCode(combinedPayload);
+    }
+
+    function downloadReceiptJPG() {
+        const element = document.getElementById('finalReceipt');
+        html2canvas(element, { scale: 2, useCORS: true }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `Receipt_${document.getElementById('recName').innerText.replace(/ /g, "_")}.jpg`;
+            link.href = canvas.toDataURL('image/jpeg', 0.9);
+            link.click();
+        });
+    }
+
+    function resetToHome() {
+        document.getElementById('empName').value = "";
+        switchScreen('homeScreen');
+    }
+</script>
+
+</body>
+</html>
