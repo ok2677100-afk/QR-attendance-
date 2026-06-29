@@ -45,6 +45,7 @@
         .btn-secondary { background-color: #6c757d; }
         .hidden { display: none !important; }
         
+        /* Form Styling */
         .form-group { text-align: left; margin-bottom: 15px; }
         label { font-weight: bold; color: #495057; display: block; margin-bottom: 5px;}
         input, select {
@@ -53,16 +54,19 @@
             border: 1px solid #ced4da;
             border-radius: 4px;
             box-sizing: border-box;
+            font-size: 15px;
         }
         
+        /* Generator Graphics */
         .qr-container { display: flex; justify-content: center; margin: 20px 0; padding: 15px; background: #fafafa; border: 1px solid #e1e4e8; border-radius: 8px;}
         .data-preview { background: #f8f9fa; border-left: 4px solid #007bff; padding: 10px; text-align: left; font-family: monospace; font-size: 12px; margin: 15px 0; word-break: break-all;}
         .progress-bar { width: 100%; background-color: #e1e4e8; height: 6px; border-radius: 3px; margin-top: 8px; overflow: hidden;}
         .progress-fill { width: 100%; height: 100%; background-color: #28a745; transition: width 0.1s linear;}
         
-        /* Scanner Box Style */
+        /* Camera Viewport */
         #reader { width: 100%; background: #fff; border-radius: 8px; margin-top: 10px; overflow: hidden; }
         
+        /* Classical Receipt Slip Design */
         .receipt-box {
             border: 2px dashed #333;
             padding: 20px;
@@ -79,7 +83,7 @@
 <div class="container">
     <div id="homeScreen">
         <h2>Gate Pass & Attendance Portal</h2>
-        <p style="color: #666;">Select your option:</p>
+        <p style="color: #666;">Select your option / اپنا انتخاب کریں:</p>
         <button class="btn" onclick="switchScreen('genScreen')">Generate QR Code</button>
         <button class="btn btn-success" onclick="switchScreen('scanFormScreen')">Scan QR Code</button>
     </div>
@@ -87,8 +91,8 @@
     <div id="genScreen" class="hidden">
         <h2>Dynamic Master QR</h2>
         <div class="qr-container"><div id="qrcode"></div></div>
-        <div style="font-size: 12px; font-weight: bold; text-align: left;">Live Encoded Data:</div>
-        <div id="dataString" class="data-preview">Loading...</div>
+        <div style="font-size: 12px; font-weight: bold; text-align: left;">Live Encoded Master Packet:</div>
+        <div id="dataString" class="data-preview">Loading system configs...</div>
         <div>Token expires in: <span id="countdown" style="font-weight: bold; color: #dc3545;">10</span>s</div>
         <div class="progress-bar"><div id="progress" class="progress-fill"></div></div>
         <br>
@@ -114,7 +118,7 @@
 
     <div id="scannerScreen" class="hidden">
         <h2>Scanning Active...</h2>
-        <p>Point your camera at the dynamic Master QR code.</p>
+        <p>Align the dynamic Master QR code inside the camera grid.</p>
         <div id="reader"></div>
         <br>
         <button class="btn btn-secondary" onclick="stopScanner()">Cancel</button>
@@ -130,7 +134,7 @@
             <strong>--- EMPLOYEE DETAILS ---</strong><br>
             Name: <span id="recName"></span><br>
             Action: <span id="recStatus" style="font-weight: bold;"></span><br>
-            Scanner IP: <span id="recScannerIP"></span><br>
+            Scanner Device IP: <span id="recScannerIP"></span><br>
             Timestamp: <span id="recTime"></span><br><br>
             
             <div style="text-align: center; border-top: 1px dashed #333; padding-top: 10px;">
@@ -152,11 +156,12 @@
     let genInterval = null;
     let html5QrcodeScanner = null;
 
-    // Fetch Public IP
+    // Fetch Device Public Network Endpoint Routing Address
     fetch('https://api.ipify.org?format=json')
         .then(res => res.json()).then(data => currentIP = data.ip)
-        .catch(() => currentIP = "192.168.10.1");
+        .catch(() => currentIP = "192.168.10.1"); // Static generic routing alternative
 
+    // Screen Router Configuration
     function switchScreen(screenId) {
         document.getElementById('homeScreen').classList.add('hidden');
         document.getElementById('genScreen').classList.add('hidden');
@@ -168,7 +173,7 @@
         if (screenId === 'genScreen') startGenerator();
     }
 
-    // --- MASTER QR GENERATOR ---
+    // --- MASTER QR ROTATING LOOP ENGINE ---
     const qrcode = new QRCode(document.getElementById("qrcode"), { width: 150, height: 150 });
     
     function startGenerator() {
@@ -198,33 +203,47 @@
         switchScreen('homeScreen');
     }
 
-    // --- MODERN QR SCANNER ENGINE ---
+    // --- HARDWARE DEEP MODEL STRING PARSER ---
+    function extractMobileModel() {
+        const ua = navigator.userAgent;
+        
+        // Android parsing layout architecture 
+        if (/Android/i.test(ua)) {
+            const match = ua.match(/Android\s+[^;]+;\s+([^;\)]+)/);
+            if (match && match[1]) {
+                return match[1].split(' Build/')[0].trim(); // Splits away platform firmware compile tags
+            }
+            return "Android Mobile";
+        } 
+        // iOS structural identification mappings
+        else if (/iPhone|iPad|iPod/i.test(ua)) {
+            if (/iPhone/i.test(ua)) return "Apple iPhone";
+            if (/iPad/i.test(ua)) return "Apple iPad";
+        }
+        return "Desktop PC / Laptop";
+    }
+
+    // --- HTML5 DEVICE INTEGRATION SCREEN SCANNER ---
     function startScanner() {
         const name = document.getElementById('empName').value.trim();
         if(!name) { alert("Please enter Employee Name first!"); return; }
         
         switchScreen('scannerScreen');
         
-        // Initialize HTML5 QR Code Engine
         html5QrcodeScanner = new Html5Qrcode("reader");
-        
         const config = { fps: 10, qrbox: { width: 250, height: 250 } };
         
-        // Open Back Camera (environment) directly
         html5QrcodeScanner.start(
             { facingMode: "environment" }, 
             config,
             (decodedText) => {
-                // Success callback
                 stopScannerHardware();
                 processScanResult(decodedText);
             },
-            (errorMessage) => {
-                // Background parsing noise - ignore
-            }
+            (errorMessage) => { /* Silencing log noise */ }
         ).catch(err => {
-            console.error("Camera Initialisation Error: ", err);
-            alert("Camera Access Failed! Please read the verification notes below.");
+            console.error("Hardware Init Error: ", err);
+            alert("Camera Access Error! Please verify site permissions settings.");
             switchScreen('scanFormScreen');
         });
     }
@@ -242,7 +261,7 @@
         switchScreen('scanFormScreen');
     }
 
-    // --- RECEIPT MATRIX MANAGER ---
+    // --- DATA COMPILATION & TWO-WAY SIGNATURE QR GENERATION ---
     function processScanResult(masterQrData) {
         switchScreen('receiptScreen');
         
@@ -250,27 +269,44 @@
         const status = document.getElementById('attendanceStatus').value;
         const scanTimestamp = new Date().toLocaleString();
         
+        // Extract exact hardware identification markers
+        const phoneModel = extractMobileModel(); 
+        const screenRes = `${window.screen.width}x${window.screen.height}`;
+        const cpuCores = navigator.hardwareConcurrency || "N/A";
+        
+        // Slicing incoming structural master elements array
         const parsed = masterQrData.split('|');
         const token = parsed[0] || "ERR";
         const qDate = parsed[1] || "ERR";
         const qTime = parsed[2] || "ERR";
         const originIP = parsed[3] || "ERR";
         
+        // Layout UI distribution nodes assignment
         document.getElementById('recMasterData').innerHTML = `ID: ${token}<br>Date: ${qDate}<br>Time: ${qTime}<br>Gen IP: ${originIP}`;
         document.getElementById('recName').innerText = empName;
         document.getElementById('recStatus').innerText = status;
-        document.getElementById('recScannerIP').innerText = currentIP;
+        
+        // Print Device Metrics clearly on the visual slip sheet
+        document.getElementById('recScannerIP').innerHTML = `
+            ${currentIP}<br>
+            <span style="font-weight:bold; color:#0275d8; font-size:11px;">MODEL: ${phoneModel}</span><br>
+            <span style="font-size:10px; color:#555;">Hardware: ${screenRes} (Cores: ${cpuCores})</span>
+        `;
         document.getElementById('recTime').innerText = scanTimestamp;
         
-        const combinedPayload = `MASTER:[${masterQrData}]|EMP:${empName}|ACTION:${status}|SCAN_IP:${currentIP}|TS:${scanTimestamp}`;
+        // Compile the complete mixed security dataset payload block text string
+        const combinedPayload = `MASTER:[${masterQrData}]|EMP:${empName}|ACTION:${status}|SCAN_IP:${currentIP}|PHONE_MODEL:${phoneModel}|HW:${screenRes}_C${cpuCores}|TS:${scanTimestamp}`;
         
+        // Reset and rebuild the second কাস্টم QR barcode instance node container
         document.getElementById("receiptQr").innerHTML = "";
         const receiptQrObj = new QRCode(document.getElementById("receiptQr"), { width: 120, height: 120 });
         receiptQrObj.makeCode(combinedPayload);
     }
 
+    // --- CANVAS GRAPHICS EXPORTER SYSTEM (JPG GENERATOR) ---
     function downloadReceiptJPG() {
         const element = document.getElementById('finalReceipt');
+        
         html2canvas(element, { scale: 2, useCORS: true }).then(canvas => {
             const link = document.createElement('a');
             link.download = `Receipt_${document.getElementById('recName').innerText.replace(/ /g, "_")}.jpg`;
