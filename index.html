@@ -83,7 +83,7 @@
 <div class="container">
     <div id="homeScreen">
         <h2>Gate Pass & Attendance Portal</h2>
-        <p style="color: #666;">Select your option / اپنا انتخاب کریں:</p>
+        <p style="color: #666;">Select your option:</p>
         <button class="btn" onclick="switchScreen('genScreen')">Generate QR Code</button>
         <button class="btn btn-success" onclick="switchScreen('scanFormScreen')">Scan QR Code</button>
     </div>
@@ -134,7 +134,8 @@
             <strong>--- EMPLOYEE DETAILS ---</strong><br>
             Name: <span id="recName"></span><br>
             Action: <span id="recStatus" style="font-weight: bold;"></span><br>
-            Scanner Device IP: <span id="recScannerIP"></span><br>
+            Scanner Device Info: <br>
+            <div id="recScannerIP" style="margin-left: 10px; font-size: 13px;"></div>
             Timestamp: <span id="recTime"></span><br><br>
             
             <div style="text-align: center; border-top: 1px dashed #333; padding-top: 10px;">
@@ -286,18 +287,18 @@
         document.getElementById('recName').innerText = empName;
         document.getElementById('recStatus').innerText = status;
         
-        // Print Device Metrics clearly on the visual slip sheet
+        // Fix applied: Enforcing clean vertical multi-line HTML text generation inside the specific viewport
         document.getElementById('recScannerIP').innerHTML = `
-            ${currentIP}<br>
-            <span style="font-weight:bold; color:#0275d8; font-size:11px;">MODEL: ${phoneModel}</span><br>
-            <span style="font-size:10px; color:#555;">Hardware: ${screenRes} (Cores: ${cpuCores})</span>
+            IP: ${currentIP}<br>
+            Model: ${phoneModel}<br>
+            Hardware: ${screenRes} (Cores: ${cpuCores})
         `;
         document.getElementById('recTime').innerText = scanTimestamp;
         
         // Compile the complete mixed security dataset payload block text string
         const combinedPayload = `MASTER:[${masterQrData}]|EMP:${empName}|ACTION:${status}|SCAN_IP:${currentIP}|PHONE_MODEL:${phoneModel}|HW:${screenRes}_C${cpuCores}|TS:${scanTimestamp}`;
         
-        // Reset and rebuild the second কাস্টم QR barcode instance node container
+        // Reset and rebuild the second custom QR barcode instance node container
         document.getElementById("receiptQr").innerHTML = "";
         const receiptQrObj = new QRCode(document.getElementById("receiptQr"), { width: 120, height: 120 });
         receiptQrObj.makeCode(combinedPayload);
